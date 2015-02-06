@@ -69,3 +69,9 @@ char* list_get(node*, int);
     including char*'s and node*'s
    Parameter: node*: a pointer to the head of a linked list */
 void list_destroy(node*);
+
+/* list_length() gets the number of nodes in the list
+   Parameters:
+   - node*: a pointer to the head of a linked list
+   Return: length */
+int list_length(node*);

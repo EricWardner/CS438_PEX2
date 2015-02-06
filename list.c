@@ -144,3 +144,13 @@ void list_destroy(node* list) {
     current = nxt;
   }
 }
+
+int list_length(node* list){
+    int size = 1;
+    node* current = list;
+    while(current->next != NULL){
+        current = current->next;
+        size++;
+    }
+    return size;
+}
