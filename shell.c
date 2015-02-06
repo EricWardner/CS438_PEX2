@@ -10,13 +10,7 @@ int main(){
     char* cmd;
     char cwd[512];
     node* history = NULL;
-/*
-    printf("-------------------------------------------\n");
-    printf("-------------------------------------------\n");
-    printf("-----WELCOME TO ERIC + JAKE'S SHELL--------\n");
-    printf("-------------------------------------------\n");
-    printf("-------------------------------------------\n");
-*/
+    
     //while loop to poll for input
     while(strcmp(input, "exit") != 0){
         //gets current directory and prints it out
@@ -30,5 +24,6 @@ int main(){
         list_print(history);
         system(input);
     }
+    
     return 0;
 }
