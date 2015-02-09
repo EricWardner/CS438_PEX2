@@ -111,7 +111,10 @@ void execute(char* cmdArray[]){
     
     pid = fork();
     if(pid == 0){
-        execvp(*cmdArray, cmdArray);
+        if(execvp(*cmdArray, cmdArray) < 0){
+            printf("ERROR EXECUTING PROGRAM\n");
+            exit(1);
+        }
     }
     else{
         while(wait(&status)!=pid);
