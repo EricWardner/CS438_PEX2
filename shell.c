@@ -30,16 +30,30 @@ int main(){
         insertHistory(cmd);
         strToArray(cmd, cmdArray);
 
+        recallJump:
         //checks what the command was
-        int num = 10;
+        if(strcmp(cmdArray[0], "recall") == 0){
+            //need to handle error
+            strcpy(cmd, list_get(history, atoi(cmdArray[1])));
+            strToArray(cmd, cmdArray);
+            //sketch
+            goto recallJump; 
+         }
+
         if(strcmp(cmdArray[0], "history") == 0){
+            int num = 10;
             if(cmdArray[1] != NULL){
                 //printf("\n\n%d\n\n", atoi(cmdArray[1]));
                 num = atoi(cmdArray[1]);
             }
             printHistory(num);
+        }else if(strcmp(cmdArray[0], "recall") == 0){
+            //need to handle error
+            strcpy(cmd, list_get(history, atoi(cmdArray[1])));
+            system(cmd);
+            
         }else{
-            system(input);
+            system(cmd);
         }
     }
 }
@@ -74,6 +88,7 @@ void strToArray(char* string, char* cmdArray[]){
         token = strtok(NULL, " ");
         i++;
     }
+    //clears old commands
     cmdArray[i] = NULL;
 }       
 
