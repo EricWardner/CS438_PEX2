@@ -39,8 +39,10 @@ int main(){
             //sketch
             goto recallJump; 
          }
-
-        if(strcmp(cmdArray[0], "history") == 0){
+        
+        if(strcmp(cmdArray[0], "cd") == 0){
+            chdir(cmdArray[1]);
+        }else if(strcmp(cmdArray[0], "history") == 0){
             int num = 10;
             if(cmdArray[1] != NULL){
                 //printf("\n\n%d\n\n", atoi(cmdArray[1]));
@@ -56,6 +58,7 @@ int main(){
             system(cmd);
         }
     }
+    list_destroy(history);
 }
 
 void insertHistory(char* cmd){
@@ -88,9 +91,7 @@ void strToArray(char* string, char* cmdArray[]){
         token = strtok(NULL, " ");
         i++;
     }
-    //clears old commands
+    //kind of clears old commands
     cmdArray[i] = NULL;
 }       
-
-
 
