@@ -9,6 +9,7 @@ node* history = NULL;
 void printHistory(int);
 void insertHistory(char*);
 void strToArray(char*, char**);
+void execute(char**);
 
 int main(){
     //intialize input buffer
@@ -36,26 +37,35 @@ int main(){
             //need to handle error
             strcpy(cmd, list_get(history, atoi(cmdArray[1])));
             strToArray(cmd, cmdArray);
-            //sketch
+            //sketch should we do a while loop?
             goto recallJump; 
          }
         
         if(strcmp(cmdArray[0], "cd") == 0){
-            chdir(cmdArray[1]);
-        }else if(strcmp(cmdArray[0], "history") == 0){
+            char* homedir = getenv("HOME");
+		
+	    if(strncmp(cmdArray[1], "~", 1) == 0 ) {
+	    //do we need a malloc???		
+	    char* newdir = cmdArray[1];
+	    //removes "~"
+	    newdir++;
+	    char* tempcmd = malloc(strlen(homedir)+strlen(newdir)+1);
+	    strcpy(tempcmd, homedir);
+	    strcat(tempcmd, newdir);
+	    chdir(tempcmd);
+	} else {         
+	    chdir(cmdArray[1]);
+	  }
+        }
+	else if(strcmp(cmdArray[0], "history") == 0){
             int num = 10;
             if(cmdArray[1] != NULL){
-                //printf("\n\n%d\n\n", atoi(cmdArray[1]));
                 num = atoi(cmdArray[1]);
             }
             printHistory(num);
-        }else if(strcmp(cmdArray[0], "recall") == 0){
-            //need to handle error
-            strcpy(cmd, list_get(history, atoi(cmdArray[1])));
-            system(cmd);
-            
         }else{
-            system(cmd);
+            execute(cmdArray);
+            //system(cmd);
         }
     }
     list_destroy(history);
@@ -94,4 +104,18 @@ void strToArray(char* string, char* cmdArray[]){
     //kind of clears old commands
     cmdArray[i] = NULL;
 }       
+
+void execute(char* cmdArray[]){
+    pid_t pid;
+    int status;
+    
+    pid = fork();
+    if(pid == 0){
+        execvp(*cmdArray, cmdArray);
+    }
+    else{
+        while(wait(&status)!=pid);
+    }
+}
+
 
