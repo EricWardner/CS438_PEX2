@@ -8,67 +8,101 @@
 node* history = NULL;
 void printHistory(int);
 void insertHistory(char*);
-void strToArray(char*, char**);
+void strToArray(char*, char**, char*);
 void execute(char**);
-
+char* replaceTilde(char*);
+void pipexec(char**, char*);
 int main(){
     //intialize input buffer
-    char input[64];
+    char input[128];
     char* cmd;
+    //dybnamicg kyuf 
     char* cmdArray[16];
     char cwd[512];
     
     //while loop to poll for input
-    while(strcmp(input, "exit") != 0){
+    //handle exit better exit(1) while(1)
+    //while(strcmp(input, "exit") != 0){
+        while(1){
         //gets current directory and prints it out
         getcwd(cwd, sizeof(cwd));
-        printf ("%s:8==D ", cwd);
+        printf ("%s:-D ", cwd);
         fflush (stdout);
 
         //gets user input and tokenizes it
-        fgets(input, 64, stdin);
+        fgets(input, 128, stdin);
+        //need there to be input
         cmd = strtok(input, "\n");
-        insertHistory(cmd);
-        strToArray(cmd, cmdArray);
-
-        recallJump:
-        //checks what the command was
-        if(strcmp(cmdArray[0], "recall") == 0){
-            //need to handle error
-            strcpy(cmd, list_get(history, atoi(cmdArray[1])));
-            strToArray(cmd, cmdArray);
-            //sketch should we do a while loop?
-            goto recallJump; 
-         }
-        
-        if(strcmp(cmdArray[0], "cd") == 0){
-            char* homedir = getenv("HOME");
-		
-	    if(strncmp(cmdArray[1], "~", 1) == 0 ) {
-	    //do we need a malloc???		
-	    char* newdir = cmdArray[1];
-	    //removes "~"
-	    newdir++;
-	    char* tempcmd = malloc(strlen(homedir)+strlen(newdir)+1);
-	    strcpy(tempcmd, homedir);
-	    strcat(tempcmd, newdir);
-	    chdir(tempcmd);
-	} else {         
-	    chdir(cmdArray[1]);
-	  }
-        }
-	else if(strcmp(cmdArray[0], "history") == 0){
-            int num = 10;
-            if(cmdArray[1] != NULL){
-                num = atoi(cmdArray[1]);
+        //cmd = replaceTilde(cmdArray);
+        if(cmd != NULL){
+            //insertHistory(cmd);
+            strToArray(cmd, cmdArray, " ");
+            if(strcmp(cmdArray[0], "exit") == 0){
+                exit(1);
             }
-            printHistory(num);
-        }else{
-            execute(cmdArray);
+            
+            //recall command
+            if(strcmp(cmdArray[0], "recall") == 0){
+                //need to handle error
+                strcpy(cmd, list_get(history, atoi(cmdArray[1])));
+                insertHistory(cmd);
+                strToArray(cmd, cmdArray, " ");
+            }else{
+                insertHistory(cmd);
+            }
+            //cd command
+            if(strcmp(cmdArray[0], "cd") == 0){
+                char* homedir = getenv("HOME");
+                    
+                if(strncmp(cmdArray[1], "~", 1) == 0 ) {
+                    //do we need a malloc???		
+                    char* newdir = cmdArray[1];
+                    //removes "~"
+                    newdir++;
+                    char* tempcmd = malloc(strlen(homedir)+strlen(newdir)+1);
+                    strcpy(tempcmd, homedir);
+                    strcat(tempcmd, newdir);
+                    chdir(tempcmd);
+                    free(tempcmd);
+                } 
+                else {         
+                    chdir(cmdArray[1]);
+                }
+            }
+            //history command
+            else if(strcmp(cmdArray[0], "history") == 0){
+                int num = 10;
+                if(cmdArray[1] != NULL){
+                    num = atoi(cmdArray[1]);
+                }
+                printHistory(num);
+            //history command
+            }else{
+                if (strstr(cmd, "|") != 0) {
+                    printf("pipe\n");
+                    pipexec(cmdArray, cmd);
+                }else{
+                    execute(cmdArray);
+                }
             //system(cmd);
+            }
         }
     }
     list_destroy(history);
+}
+char* replaceTilde(char* cmd){
+    
+    char* homedir = getenv("HOME");
+    //do we need a malloc???		
+    //removes "~"
+    cmd++;
+    char* tempcmd = malloc(strlen(homedir)+strlen(cmd)+1);
+    strcpy(tempcmd, homedir);
+    strcat(tempcmd, cmd);
+    cmd = realloc(cmd, sizeof(tempcmd));
+    strcpy(cmd, tempcmd);
+    free(tempcmd);
+    return cmd;
 }
 
 void insertHistory(char* cmd){
@@ -91,14 +125,16 @@ void printHistory(int numCalls){
     } 
 }
 
-void strToArray(char* string, char* cmdArray[]){
+void strToArray(char* string, char* cmdArray[], char* delim){
     int i = 0;
-    char* token = strtok(string, " ");
+    //So we don't smash the cmd
+    char* token = strdup(string);
+    token = strtok(token, delim);
     
     while(token != NULL){
         cmdArray[i] = malloc(strlen(token) + 1);
         strcpy(cmdArray[i], token);
-        token = strtok(NULL, " ");
+        token = strtok(NULL, delim);
         i++;
     }
     //kind of clears old commands
@@ -112,7 +148,7 @@ void execute(char* cmdArray[]){
     pid = fork();
     if(pid == 0){
         if(execvp(*cmdArray, cmdArray) < 0){
-            printf("ERROR EXECUTING PROGRAM\n");
+            printf("blah\n");
             exit(1);
         }
     }
@@ -120,5 +156,50 @@ void execute(char* cmdArray[]){
         while(wait(&status)!=pid);
     }
 }
+
+void pipexec(char* cmdArray[], char* cmd){
+    int fd[2];
+    pid_t pid;
+    char* pipeArray[16];
+    char* cmd1Array[16];
+    char* cmd2Array[16];
+    printf("cmd: %s\n", cmd);
+    strToArray(cmd, pipeArray, "|");
+    strToArray(pipeArray[0], cmd1Array, " ");
+    strToArray(pipeArray[1], cmd2Array, " ");
+    printf("pipe: %s %s\n", pipeArray[0], pipeArray[1]);
+    printf("%s %s\n", cmd1Array[0], cmd1Array[1]);
+    printf("%s %s\n", cmd2Array[0], cmd2Array[1]);
+ 
+    if(fork()){
+        wait(NULL);
+    }else{
+                
+        if(pipe(fd) == -1){
+            fprintf(stderr, "Pipe failed");
+            return;
+        }
+        pid = fork();
+        if(pid > 0){
+            dup2(fd[1], 1);
+            printf("dup fd1\n");
+            close(fd[0]);
+            if(execvp(*cmd1Array, cmd1Array) < 0){
+                printf("death1");
+                exit(1);
+            }
+            exit(1);
+        }else{
+            dup2(fd[0], 0);
+            close(fd[1]);
+            if(execvp(*cmd2Array, cmd2Array) < 0){
+                printf("death2");
+                exit(1);
+            }
+            exit(1);
+        }
+    }
+}
+
 
 
