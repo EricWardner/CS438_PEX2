@@ -2,17 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #include "list.h"
 #include "shell.h"
 
 node* history = NULL;
-//void printHistory(int);
-//void insertHistory(char*);
-//void strToArray(char*, char**, char*);
-//void execute(char**);
-//char* replaceTilde(char*);
-//void pipexec(char**, char*);
-
 
 int main(){
     //intialize input buffer
@@ -57,7 +51,6 @@ int main(){
                 char* homedir = getenv("HOME");
                     
                 if(strncmp(cmdArray[1], "~", 1) == 0 ) {
-                    //do we need a malloc???		
                     char* newdir = cmdArray[1];
                     //removes "~"
                     newdir++;
@@ -86,16 +79,16 @@ int main(){
                 }else{
                     execute(cmdArray);
                 }
-            //system(cmd);
             }
+            
         }
+	
     }
-    list_destroy(history);
+
 }
 char* replaceTilde(char* cmd){
     
     char* homedir = getenv("HOME");
-    //do we need a malloc???		
     //removes "~"
     cmd++;
     char* tempcmd = malloc(strlen(homedir)+strlen(cmd)+1);
@@ -145,7 +138,6 @@ void strToArray(char* string, char* cmdArray[], char* delim){
 
 void execute(char* cmdArray[]){
     pid_t pid;
-    int status;
     
     pid = fork();
     if(pid == 0){
@@ -159,6 +151,8 @@ void execute(char* cmdArray[]){
     }
 }
 
+//C1C cooper helped out with general flow (order of the ifs)
+//maj brault told us to do 2 waits
 void pipexec(char* cmdArray[], char* cmd){
     int fd[2];
     pid_t pid1;
@@ -171,21 +165,22 @@ void pipexec(char* cmdArray[], char* cmd){
     strToArray(pipeArray[1], cmd2Array, " ");
     
     pid1 = fork();
+
     pipe(fd);
-    if(pid1 == 0){
+    if(pid1 == 0){     //child
         pid2 = fork();
-        if(pid2 > 0){
+        if(pid2 > 0){  //first child, 2nd parent
             dup2(fd[1], 1);
             close(fd[0]);
-            close(fd[1]);
-            if(execvp(*cmd1Array, cmd1Array) < 0){
+            close(fd[1]);                               //error checking
+            if(execvp(*cmd1Array, cmd1Array) < 0){  //execute first part of pipe
                 printf("INVALID COMMAND");
                 exit(1);
             }
             //close(fd[1]);
         }else{
             dup2(fd[0], 0);
-            close(fd[1]);
+            close(fd[1]); //close the right file descriptors
             close(fd[0]);
             if(execvp(*cmd2Array, cmd2Array) < 0){
                 printf("INVALID COMMAND");
@@ -193,40 +188,10 @@ void pipexec(char* cmdArray[], char* cmd){
             }
         }
     }else{
+        //wait for both childs to finish, kind of works sometimes
         wait(NULL);
         wait(NULL);
         fflush(stdout);
     }
-/*
-    if(pid1 != 0){
-        while(wait(NULL));
-    }else{
-                
-        if(pipe(fd) == -1){
-            fprintf(stderr, "Pipe failed");
-            return;
-        }
-        pid2 = fork();
-        if(pid2 > 0){
-            dup2(fd[1], 1);
-            //printf("dup fd1\n");
-            close(fd[0]);
-            if(execvp(*cmd1Array, cmd1Array) < 0){
-                //printf("death1\n");
-                exit(1);
-            }
-            //exit(1);
-        }else{
-            dup2(fd[0], 0);
-            close(fd[1]);
-            if(execvp(*cmd2Array, cmd2Array) < 0){
-                //printf("death2\n");
-                exit(1);
-            }
-            //exit(1);
-        }
-    }
-*/
 }
-
 
