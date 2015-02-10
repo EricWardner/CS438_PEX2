@@ -159,33 +159,35 @@ void execute(char* cmdArray[]){
 
 void pipexec(char* cmdArray[], char* cmd){
     int fd[2];
-    pid_t pid;
+    pid_t pid1;
+    pid_t pid2;
+    int status;
     char* pipeArray[16];
     char* cmd1Array[16];
     char* cmd2Array[16];
-    printf("cmd: %s\n", cmd);
+    //printf("cmd: %s\n", cmd);
     strToArray(cmd, pipeArray, "|");
     strToArray(pipeArray[0], cmd1Array, " ");
     strToArray(pipeArray[1], cmd2Array, " ");
-    printf("pipe: %s %s\n", pipeArray[0], pipeArray[1]);
-    printf("%s %s\n", cmd1Array[0], cmd1Array[1]);
-    printf("%s %s\n", cmd2Array[0], cmd2Array[1]);
- 
-    if(fork()){
-        wait(NULL);
+    //printf("pipe: %s %s\n", pipeArray[0], pipeArray[1]);
+    //printf("%s %s\n", cmd1Array[0], cmd1Array[1]);
+    //printf("%s %s\n", cmd2Array[0], cmd2Array[1]);
+    pid1 = fork();
+    if(pid1 != 0){
+        while(wait(&status)!=pid1);
     }else{
                 
         if(pipe(fd) == -1){
             fprintf(stderr, "Pipe failed");
             return;
         }
-        pid = fork();
-        if(pid > 0){
+        pid2 = fork();
+        if(pid2 > 0){
             dup2(fd[1], 1);
-            printf("dup fd1\n");
+            //printf("dup fd1\n");
             close(fd[0]);
             if(execvp(*cmd1Array, cmd1Array) < 0){
-                printf("death1");
+                //printf("death1\n");
                 exit(1);
             }
             exit(1);
@@ -193,13 +195,12 @@ void pipexec(char* cmdArray[], char* cmd){
             dup2(fd[0], 0);
             close(fd[1]);
             if(execvp(*cmd2Array, cmd2Array) < 0){
-                printf("death2");
+                //printf("death2\n");
                 exit(1);
             }
             exit(1);
         }
     }
 }
-
 
 
