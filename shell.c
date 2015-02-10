@@ -3,15 +3,17 @@
 #include <string.h>
 #include <unistd.h>
 #include "list.h"
-//#include "shell.h"
+#include "shell.h"
 
 node* history = NULL;
-void printHistory(int);
-void insertHistory(char*);
-void strToArray(char*, char**, char*);
-void execute(char**);
-char* replaceTilde(char*);
-void pipexec(char**, char*);
+//void printHistory(int);
+//void insertHistory(char*);
+//void strToArray(char*, char**, char*);
+//void execute(char**);
+//char* replaceTilde(char*);
+//void pipexec(char**, char*);
+
+
 int main(){
     //intialize input buffer
     char input[128];
@@ -79,8 +81,8 @@ int main(){
             //history command
             }else{
                 if (strstr(cmd, "|") != 0) {
-                    printf("pipe\n");
                     pipexec(cmdArray, cmd);
+                    usleep(50);
                 }else{
                     execute(cmdArray);
                 }
@@ -148,12 +150,12 @@ void execute(char* cmdArray[]){
     pid = fork();
     if(pid == 0){
         if(execvp(*cmdArray, cmdArray) < 0){
-            printf("blah\n");
+            printf("INVALID COMMAND\n");
             exit(1);
         }
     }
     else{
-        while(wait(&status)!=pid);
+        wait(NULL);
     }
 }
 
@@ -161,20 +163,43 @@ void pipexec(char* cmdArray[], char* cmd){
     int fd[2];
     pid_t pid1;
     pid_t pid2;
-    int status;
     char* pipeArray[16];
     char* cmd1Array[16];
     char* cmd2Array[16];
-    //printf("cmd: %s\n", cmd);
     strToArray(cmd, pipeArray, "|");
     strToArray(pipeArray[0], cmd1Array, " ");
     strToArray(pipeArray[1], cmd2Array, " ");
-    //printf("pipe: %s %s\n", pipeArray[0], pipeArray[1]);
-    //printf("%s %s\n", cmd1Array[0], cmd1Array[1]);
-    //printf("%s %s\n", cmd2Array[0], cmd2Array[1]);
+    
     pid1 = fork();
+    pipe(fd);
+    if(pid1 == 0){
+        pid2 = fork();
+        if(pid2 > 0){
+            dup2(fd[1], 1);
+            close(fd[0]);
+            close(fd[1]);
+            if(execvp(*cmd1Array, cmd1Array) < 0){
+                printf("INVALID COMMAND");
+                exit(1);
+            }
+            //close(fd[1]);
+        }else{
+            dup2(fd[0], 0);
+            close(fd[1]);
+            close(fd[0]);
+            if(execvp(*cmd2Array, cmd2Array) < 0){
+                printf("INVALID COMMAND");
+                exit(1);
+            }
+        }
+    }else{
+        wait(NULL);
+        wait(NULL);
+        fflush(stdout);
+    }
+/*
     if(pid1 != 0){
-        while(wait(&status)!=pid1);
+        while(wait(NULL));
     }else{
                 
         if(pipe(fd) == -1){
@@ -190,7 +215,7 @@ void pipexec(char* cmdArray[], char* cmd){
                 //printf("death1\n");
                 exit(1);
             }
-            exit(1);
+            //exit(1);
         }else{
             dup2(fd[0], 0);
             close(fd[1]);
@@ -198,9 +223,10 @@ void pipexec(char* cmdArray[], char* cmd){
                 //printf("death2\n");
                 exit(1);
             }
-            exit(1);
+            //exit(1);
         }
     }
+*/
 }
 
 
